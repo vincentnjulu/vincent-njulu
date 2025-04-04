@@ -1,0 +1,53 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <microhttpd.h>
+
+#define PORT 8888
+
+// HTML content for the asset management page
+const char *html_content = "<html><body><h1>Asset Management System</h1><p>Welcome to the asset management system.</p></body></html>";
+
+// Callback function to handle HTTP requests
+static int answer_to_request(void *cls, struct MHD_Connection *connection, const char *url,
+                              const char *method, const char *version, const char *upload_data,
+                              size_t *upload_data_size, void **con_cls) {
+
+    struct MHD_Response *response;
+    int ret;
+
+    // Check if the method is GET
+    if (strcmp(method, "GET") == 0) {
+        // Create the response with the HTML content
+        response = MHD_create_response_from_buffer(strlen(html_content), (void *)html_content,
+                                                   MHD_RESPMEM_PERSISTENT);
+        // Set response headers
+        MHD_add_response_header(response, "Content-Type", "text/html");
+        // Send the response back to the client
+        ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
+        MHD_destroy_response(response);
+        return ret;
+    }
+
+    // For unsupported methods, return HTTP 405 Method Not Allowed
+    return MHD_NO;
+}
+
+int main() {
+    struct MHD_Daemon *daemon;
+
+    // Start the web server
+    daemon = MHD_start_daemon(MHD_USE_THREAD_PER_CONNECTION, PORT, NULL, NULL,
+                              &answer_to_request, NULL, MHD_OPTION_END);
+    if (NULL == daemon) {
+        fprintf(stderr, "Failed to start the server.\n");
+        return 1;
+    }
+
+    printf("Server started on port %d\n", PORT);
+    getchar(); // Wait for user to stop the server
+
+    // Stop the server
+    MHD_stop_daemon(daemon);
+    return 0;
+}
